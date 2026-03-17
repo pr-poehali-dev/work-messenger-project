@@ -26,6 +26,7 @@ export interface Message {
   time: string;
   outgoing: boolean;
   read: boolean;
+  reactions?: string[];
 }
 
 export interface Chat {
@@ -57,7 +58,7 @@ const INITIAL_CHATS: Chat[] = [
       { id: 2, text: "Отлично, отправьте на согласование в финансовый отдел.", time: "09:22", outgoing: false, read: true },
       { id: 3, text: "Уже отправил. Ожидаем подтверждения до конца дня.", time: "09:25", outgoing: true, read: true },
       { id: 4, text: "Хорошо. Встреча в 14:00 остаётся в силе?", time: "09:30", outgoing: false, read: true },
-      { id: 5, text: "Да, подтверждаю участие.", time: "09:31", outgoing: true, read: false },
+      { id: 5, text: "Да, подтверждаю участие.", time: "09:31", outgoing: true, read: true },
     ],
     lastMessage: "Да, подтверждаю участие.",
     lastTime: "09:31",
@@ -124,7 +125,7 @@ export const ME: Contact = {
 
 export default function Index() {
   const [section, setSection] = useState<Section>("chats");
-  const [activeChat, setActiveChat] = useState<Chat | null>(INITIAL_CHATS[0]);
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
   const [callType, setCallType] = useState<CallType>(null);
   const [callContact, setCallContact] = useState<Contact | null>(null);
@@ -138,23 +139,39 @@ export default function Index() {
       outgoing: true,
       read: false,
     };
+    const updated = (c: Chat) => ({
+      ...c,
+      messages: [...c.messages, newMsg],
+      lastMessage: text,
+      lastTime: newMsg.time,
+    });
+    setChats(prev => prev.map(c => c.id === activeChat.id ? updated(c) : c));
+    setActiveChat(prev => prev ? updated(prev) : prev);
+  };
+
+  const handleReact = (msgId: number, emoji: string) => {
+    if (!activeChat) return;
+    const updateMsgs = (msgs: Message[]) =>
+      msgs.map(m =>
+        m.id === msgId
+          ? { ...m, reactions: [...(m.reactions || []), emoji] }
+          : m
+      );
     setChats(prev =>
-      prev.map(c =>
-        c.id === activeChat.id
-          ? { ...c, messages: [...c.messages, newMsg], lastMessage: text, lastTime: newMsg.time }
-          : c
-      )
+      prev.map(c => c.id === activeChat.id ? { ...c, messages: updateMsgs(c.messages) } : c)
     );
     setActiveChat(prev =>
-      prev ? { ...prev, messages: [...prev.messages, newMsg], lastMessage: text, lastTime: newMsg.time } : prev
+      prev ? { ...prev, messages: updateMsgs(prev.messages) } : prev
     );
   };
 
   const handleSelectChat = (chat: Chat) => {
-    setActiveChat(chat);
-    setChats(prev => prev.map(c => (c.id === chat.id ? { ...c, unread: 0 } : c)));
-    setSection("chats");
+    const cleared = { ...chat, unread: 0 };
+    setActiveChat(cleared);
+    setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unread: 0 } : c));
   };
+
+  const handleBack = () => setActiveChat(null);
 
   const handleCall = (type: CallType, contact: Contact) => {
     setCallType(type);
@@ -164,7 +181,7 @@ export default function Index() {
   const handleStartChatFromContact = (contact: Contact) => {
     const existing = chats.find(c => c.contact.id === contact.id);
     if (existing) {
-      setActiveChat(existing);
+      handleSelectChat(existing);
     } else {
       const newChat: Chat = {
         id: Date.now(),
@@ -181,24 +198,69 @@ export default function Index() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      <div className="flex flex-1 overflow-hidden" style={{ paddingBottom: "60px" }}>
-        {section === "chats" && (
-          <>
-            <ChatList chats={chats} activeChat={activeChat} onSelect={handleSelectChat} />
-            <ChatWindow chat={activeChat} me={ME} onSend={handleSendMessage} onCall={handleCall} />
-          </>
-        )}
-        {section === "contacts" && (
+    <div className="flex flex-col h-screen overflow-hidden bg-white" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden relative" style={{ paddingBottom: "60px" }}>
+        {/* Chats section */}
+        <div
+          className="absolute inset-0 transition-transform duration-300"
+          style={{ transform: section === "chats" ? "translateX(0)" : "translateX(-100%)" }}
+        >
+          {/* Chat list layer */}
+          <div
+            className="absolute inset-0 transition-transform duration-300"
+            style={{ transform: activeChat ? "translateX(-100%)" : "translateX(0)" }}
+          >
+            <ChatList chats={chats} onSelect={handleSelectChat} />
+          </div>
+
+          {/* Chat window layer */}
+          <div
+            className="absolute inset-0 transition-transform duration-300"
+            style={{ transform: activeChat ? "translateX(0)" : "translateX(100%)" }}
+          >
+            {activeChat && (
+              <ChatWindow
+                chat={activeChat}
+                me={ME}
+                onSend={handleSendMessage}
+                onCall={handleCall}
+                onBack={handleBack}
+                onReact={handleReact}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Contacts */}
+        <div
+          className="absolute inset-0 transition-transform duration-300"
+          style={{ transform: section === "contacts" ? "translateX(0)" : "translateX(100%)" }}
+        >
           <Contacts contacts={CONTACTS} onChat={handleStartChatFromContact} onCall={handleCall} />
-        )}
-        {section === "profile" && <Profile me={ME} />}
-        {section === "settings" && <Settings me={ME} />}
+        </div>
+
+        {/* Profile */}
+        <div
+          className="absolute inset-0 transition-transform duration-300"
+          style={{ transform: section === "profile" ? "translateX(0)" : "translateX(100%)" }}
+        >
+          <Profile me={ME} />
+        </div>
+
+        {/* Settings */}
+        <div
+          className="absolute inset-0 transition-transform duration-300"
+          style={{ transform: section === "settings" ? "translateX(0)" : "translateX(100%)" }}
+        >
+          <Settings me={ME} />
+        </div>
       </div>
 
+      {/* Bottom nav */}
       <Sidebar
         section={section}
-        onSection={setSection}
+        onSection={(s) => { setSection(s); if (s !== "chats") setActiveChat(null); }}
         me={ME}
         unreadTotal={chats.reduce((a, c) => a + c.unread, 0)}
       />
@@ -207,10 +269,7 @@ export default function Index() {
         <CallModal
           type={callType}
           contact={callContact}
-          onEnd={() => {
-            setCallType(null);
-            setCallContact(null);
-          }}
+          onEnd={() => { setCallType(null); setCallContact(null); }}
         />
       )}
     </div>
