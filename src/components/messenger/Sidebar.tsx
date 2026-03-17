@@ -15,65 +15,52 @@ const NAV = [
   { id: "settings" as Section, icon: "Settings", label: "Настройки" },
 ];
 
-export default function Sidebar({ section, onSection, me, unreadTotal }: Props) {
+export default function Sidebar({ section, onSection, unreadTotal }: Props) {
   return (
     <div
-      className="flex flex-col items-center py-5 gap-1 w-16 flex-shrink-0 border-r"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 border-t"
       style={{
-        background: "hsl(222, 50%, 10%)",
-        borderColor: "hsl(222, 40%, 18%)",
+        background: "#fff",
+        borderColor: "hsl(220, 20%, 90%)",
+        height: "60px",
+        boxShadow: "0 -1px 12px rgba(0,0,0,0.08)",
       }}
     >
-      <div className="mb-4 mt-1">
-        <div
-          className="w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white"
-          style={{ background: "hsl(210, 85%, 55%)" }}
-        >
-          CP
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1 flex-1 w-full px-2">
-        {NAV.map(item => (
+      {NAV.map(item => {
+        const isActive = section === item.id;
+        return (
           <button
             key={item.id}
             onClick={() => onSection(item.id)}
-            title={item.label}
-            className="relative flex flex-col items-center justify-center w-full h-11 rounded-lg transition-all duration-150 group"
-            style={{
-              background: section === item.id ? "hsl(210, 85%, 55%)" : "transparent",
-              color: section === item.id ? "#fff" : "hsl(210, 20%, 60%)",
-            }}
+            className="relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-150"
+            style={{ color: isActive ? "hsl(210, 85%, 50%)" : "hsl(220, 15%, 55%)" }}
           >
-            <Icon name={item.icon} size={18} />
-            {item.id === "chats" && unreadTotal > 0 && (
+            <div className="relative">
+              <Icon name={item.icon} size={22} />
+              {item.id === "chats" && unreadTotal > 0 && (
+                <span
+                  className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+                  style={{ background: "hsl(0, 72%, 51%)" }}
+                >
+                  {unreadTotal > 9 ? "9+" : unreadTotal}
+                </span>
+              )}
+            </div>
+            <span
+              className="text-[10px] font-medium leading-none"
+              style={{ color: isActive ? "hsl(210, 85%, 50%)" : "hsl(220, 15%, 55%)" }}
+            >
+              {item.label}
+            </span>
+            {isActive && (
               <span
-                className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
-                style={{ background: "hsl(0, 72%, 51%)" }}
-              >
-                {unreadTotal > 9 ? "9+" : unreadTotal}
-              </span>
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-t-full"
+                style={{ width: "24px", height: "3px", background: "hsl(210, 85%, 50%)" }}
+              />
             )}
-            <span className="text-[9px] mt-0.5 font-medium leading-none">{item.label}</span>
           </button>
-        ))}
-      </div>
-
-      <button
-        onClick={() => onSection("profile")}
-        className="mt-2 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white relative"
-        style={{ background: "hsl(222, 60%, 30%)", border: "2px solid hsl(222, 40%, 22%)" }}
-        title={me.name}
-      >
-        {me.initials}
-        <span
-          className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
-          style={{
-            background: "hsl(142, 70%, 45%)",
-            borderColor: "hsl(222, 50%, 10%)",
-          }}
-        />
-      </button>
+        );
+      })}
     </div>
   );
 }

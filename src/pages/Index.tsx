@@ -181,15 +181,8 @@ export default function Index() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "'IBM Plex Sans', sans-serif", background: "hsl(222, 45%, 15%)" }}>
-      <Sidebar
-        section={section}
-        onSection={setSection}
-        me={ME}
-        unreadTotal={chats.reduce((a, c) => a + c.unread, 0)}
-      />
-
-      <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <div className="flex flex-1 overflow-hidden" style={{ paddingBottom: "60px" }}>
         {section === "chats" && (
           <>
             <ChatList chats={chats} activeChat={activeChat} onSelect={handleSelectChat} />
@@ -202,6 +195,13 @@ export default function Index() {
         {section === "profile" && <Profile me={ME} />}
         {section === "settings" && <Settings me={ME} />}
       </div>
+
+      <Sidebar
+        section={section}
+        onSection={setSection}
+        me={ME}
+        unreadTotal={chats.reduce((a, c) => a + c.unread, 0)}
+      />
 
       {callType && callContact && (
         <CallModal
